@@ -1,0 +1,29 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Healthcare Plus API",
+    "version": "2.0.0",
+    "description": "A comprehensive RESTful API for managing patients, appointments, medical records, and prescriptions in a multi-tenant hospital management system.\nThis API is designed with HIPAA compliance in mind, ensuring secure handling of Protected Health Information (PHI) through robust access controls, audit logging, and encryption.\nIt supports role-based access for administrators, doctors, nurses, and receptionists, and adheres to HL7 FHIR-compatible resource naming conventions where applicable.\nRate limit: 100 requests/minute per API key.",
+    "contact": {
+      "name": "Healthcare Plus API Team",
+      "email": "api-support@healthcareplus.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.healthcareplus.com/api/v2",
+      "description": "Production server"
+    },
+    {
+      "url": "https://dev.api.healthcareplus.com/api/v2",
+      "description": "Development server"
+    }
+  ],
+  "security": [
+    {
+      "OAuth2": [
+        "patient:read",
+        "patient:write",
+        "appointment:read",
+        "appointment:write",
+        "record:read",
