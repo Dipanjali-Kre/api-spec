@@ -1,12 +1,12 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Healthcare Plus API",
+    "title": "HealthCare Plus Platform API",
     "version": "2.0.0",
-    "description": "A comprehensive RESTful API for managing patients, appointments, medical records, and prescriptions within a multi-tenant hospital management system. This API is designed with HIPAA compliance in mind, ensuring robust access controls, audit logging for all patient data access, and encryption at rest and in transit. It also aims for HL7 FHIR compatible resource naming where applicable. All PHI is protected and never exposed in URLs or query parameters. Features include patient consent tracking for data sharing, session timeouts after 15 minutes of inactivity, and two-factor authentication for provider access. The API enforces a rate limit of 100 requests per minute per API key.",
+    "description": "A comprehensive RESTful API for managing patients, appointments, medical records, and prescriptions within a multi-tenant hospital management system. This API is designed with HIPAA compliance in mind, ensuring secure handling of Protected Health Information (PHI) and robust access controls. It aims for HL7 FHIR compatibility in resource naming where applicable. All patient data access is subject to audit logging and role-based access control (admin, doctor, nurse, receptionist). The API enforces a rate limit of 100 requests/minute per API key.",
     "contact": {
       "name": "Engineering Team",
-      "email": "engineering@healthcareplus.com"
+      "email": "support@healthcareplus.com"
     }
   },
   "servers": [
@@ -15,11 +15,902 @@
       "description": "Production server"
     },
     {
-      "url": "https://dev.api.healthcareplus.com/api/v2",
-      "description": "Development server"
+      "url": "https://staging.healthcareplus.com/api/v2",
+      "description": "Staging server"
+    }
+  ],
+  "security": [
+    {
+      "OAuth2": [
+        "patient:read",
+        "patient:write",
+        "appointment:read",
+        "appointment:write",
+        "record:read",
+        "record:write"
+      ]
     }
   ],
   "tags": [
     {
       "name": "Patients",
-      "description": "Operations related to patient management."
+      "description": "Operations related to patient management"
+    },
+    {
+      "name": "Appointments",
+      "description": "Operations related to scheduling and managing appointments"
+    },
+    {
+      "name": "Medical Records",
+      "description": "Operations related to patient medical history and records"
+    }
+  ],
+  "paths": {
+    "/patients": {
+      "get": {
+        "tags": [
+          "Patients"
+        ],
+        "summary": "Retrieve a list of patients",
+        "description": "Returns a paginated list of all patients registered in the system. Accessible by roles with `patient:read` scope.",
+        "operationId": "listPatients",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of patients.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientsList"
+                },
+                "examples": {
+                  "patientsListExample": {
+                    "value": {
+                      "items": [
+                        {
+                          "id": "pat_123",
+                          "firstName": "John",
+                          "lastName": "Doe",
+                          "dateOfBirth": "1980-01-15",
+                          "gender": "Male",
+                          "contact": {
+                            "email": "john.doe@example.com",
+                            "phone": "+15551234567"
+                          },
+                          "address": {
+                            "street": "123 Main St",
+                            "city": "Anytown",
+                            "state": "CA",
+                            "zipCode": "90210",
+                            "country": "USA"
+                          },
+                          "tenantId": "tenant_A"
+                        }
+                      ],
+                      "total": 1,
+                      "limit": 10,
+                      "offset": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "patient:read"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Patients"
+        ],
+        "summary": "Create a new patient record",
+        "description": "Adds a new patient to the system. Requires `patient:write` scope.",
+        "operationId": "createPatient",
+        "requestBody": {
+          "description": "Patient object to be created",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientCreate"
+              },
+              "examples": {
+                "newPatient": {
+                  "value": {
+                    "firstName": "Jane",
+                    "lastName": "Smith",
+                    "dateOfBirth": "1992-03-20",
+                    "gender": "Female",
+                    "contact": {
+                      "email": "jane.smith@example.com",
+                      "phone": "+15559876543"
+                    },
+                    "address": {
+                      "street": "456 Oak Ave",
+                      "city": "Otherville",
+                      "state": "NY",
+                      "zipCode": "10001",
+                      "country": "USA"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Patient created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                },
+                "examples": {
+                  "createdPatient": {
+                    "value": {
+                      "id": "pat_456",
+                      "firstName": "Jane",
+                      "lastName": "Smith",
+                      "dateOfBirth": "1992-03-20",
+                      "gender": "Female",
+                      "contact": {
+                        "email": "jane.smith@example.com",
+                        "phone": "+15559876543"
+                      },
+                      "address": {
+                        "street": "456 Oak Ave",
+                        "city": "Otherville",
+                        "state": "NY",
+                        "zipCode": "10001",
+                        "country": "USA"
+                      },
+                      "tenantId": "tenant_A"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "patient:write"
+            ]
+          }
+        ]
+      }
+    },
+    "/patients/{patientId}": {
+      "get": {
+        "tags": [
+          "Patients"
+        ],
+        "summary": "Retrieve a patient by ID",
+        "description": "Returns a single patient's details by their unique ID. Requires `patient:read` scope.",
+        "operationId": "getPatientById",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatientIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Patient details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                },
+                "examples": {
+                  "patientDetails": {
+                    "value": {
+                      "id": "pat_123",
+                      "firstName": "John",
+                      "lastName": "Doe",
+                      "dateOfBirth": "1980-01-15",
+                      "gender": "Male",
+                      "contact": {
+                        "email": "john.doe@example.com",
+                        "phone": "+15551234567"
+                      },
+                      "address": {
+                        "street": "123 Main St",
+                        "city": "Anytown",
+                        "state": "CA",
+                        "zipCode": "90210",
+                        "country": "USA"
+                      },
+                      "tenantId": "tenant_A"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "patient:read"
+            ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Patients"
+        ],
+        "summary": "Update an existing patient record",
+        "description": "Updates the details of an existing patient. Requires `patient:write` scope.",
+        "operationId": "updatePatient",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatientIdParam"
+          }
+        ],
+        "requestBody": {
+          "description": "Patient object with updated fields",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientUpdate"
+              },
+              "examples": {
+                "updatedPatient": {
+                  "value": {
+                    "firstName": "Jonathan",
+                    "contact": {
+                      "email": "jonathan.doe@example.com"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Patient updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                },
+                "examples": {
+                  "updatedPatientResponse": {
+                    "value": {
+                      "id": "pat_123",
+                      "firstName": "Jonathan",
+                      "lastName": "Doe",
+                      "dateOfBirth": "1980-01-15",
+                      "gender": "Male",
+                      "contact": {
+                        "email": "jonathan.doe@example.com",
+                        "phone": "+15551234567"
+                      },
+                      "address": {
+                        "street": "123 Main St",
+                        "city": "Anytown",
+                        "state": "CA",
+                        "zipCode": "90210",
+                        "country": "USA"
+                      },
+                      "tenantId": "tenant_A"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "patient:write"
+            ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Patients"
+        ],
+        "summary": "Delete a patient record",
+        "description": "Deletes a patient record from the system. This operation is irreversible. Requires `patient:write` scope.",
+        "operationId": "deletePatient",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatientIdParam"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Patient deleted successfully. No content."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "patient:write"
+            ]
+          }
+        ]
+      }
+    },
+    "/appointments": {
+      "get": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Retrieve a list of appointments",
+        "description": "Returns a paginated list of all appointments. Can be filtered by patient ID. Requires `appointment:read` scope.",
+        "operationId": "listAppointments",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "name": "patientId",
+            "in": "query",
+            "description": "Filter appointments by patient ID",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^pat_[a-zA-Z0-9]{3,}$"
+            },
+            "example": "pat_123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of appointments.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentsList"
+                },
+                "examples": {
+                  "appointmentsListExample": {
+                    "value": {
+                      "items": [
+                        {
+                          "id": "app_789",
+                          "patientId": "pat_123",
+                          "doctorId": "doc_456",
+                          "appointmentDate": "2024-07-20T10:00:00Z",
+                          "reason": "Annual check-up",
+                          "status": "Scheduled",
+                          "tenantId": "tenant_A"
+                        }
+                      ],
+                      "total": 1,
+                      "limit": 10,
+                      "offset": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "appointment:read"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Create a new appointment",
+        "description": "Schedules a new appointment for a patient. Requires `appointment:write` scope.",
+        "operationId": "createAppointment",
+        "requestBody": {
+          "description": "Appointment object to be created",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentCreate"
+              },
+              "examples": {
+                "newAppointment": {
+                  "value": {
+                    "patientId": "pat_123",
+                    "doctorId": "doc_456",
+                    "appointmentDate": "2024-07-25T14:30:00Z",
+                    "reason": "Follow-up consultation",
+                    "status": "Scheduled"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Appointment created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "examples": {
+                  "createdAppointment": {
+                    "value": {
+                      "id": "app_101",
+                      "patientId": "pat_123",
+                      "doctorId": "doc_456",
+                      "appointmentDate": "2024-07-25T14:30:00Z",
+                      "reason": "Follow-up consultation",
+                      "status": "Scheduled",
+                      "tenantId": "tenant_A"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "appointment:write"
+            ]
+          }
+        ]
+      }
+    },
+    "/appointments/{appointmentId}": {
+      "get": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Retrieve an appointment by ID",
+        "description": "Returns details of a specific appointment by its unique ID. Requires `appointment:read` scope.",
+        "operationId": "getAppointmentById",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AppointmentIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "examples": {
+                  "appointmentDetails": {
+                    "value": {
+                      "id": "app_789",
+                      "patientId": "pat_123",
+                      "doctorId": "doc_456",
+                      "appointmentDate": "2024-07-20T10:00:00Z",
+                      "reason": "Annual check-up",
+                      "status": "Scheduled",
+                      "tenantId": "tenant_A"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "appointment:read"
+            ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Update an existing appointment",
+        "description": "Updates the details of an existing appointment. Requires `appointment:write` scope.",
+        "operationId": "updateAppointment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AppointmentIdParam"
+          }
+        ],
+        "requestBody": {
+          "description": "Appointment object with updated fields",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentUpdate"
+              },
+              "examples": {
+                "updatedAppointment": {
+                  "value": {
+                    "status": "Completed",
+                    "reason": "Annual check-up (completed)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Appointment updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "examples": {
+                  "updatedAppointmentResponse": {
+                    "value": {
+                      "id": "app_789",
+                      "patientId": "pat_123",
+                      "doctorId": "doc_456",
+                      "appointmentDate": "2024-07-20T10:00:00Z",
+                      "reason": "Annual check-up (completed)",
+                      "status": "Completed",
+                      "tenantId": "tenant_A"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "appointment:write"
+            ]
+          }
+        ]
+      }
+    },
+    "/patients/{patientId}/records": {
+      "get": {
+        "tags": [
+          "Medical Records"
+        ],
+        "summary": "Retrieve medical records for a patient",
+        "description": "Returns a paginated list of medical records for a specific patient. Requires `record:read` scope.",
+        "operationId": "listMedicalRecordsByPatient",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatientIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of medical records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicalRecordsList"
+                },
+                "examples": {
+                  "medicalRecordsListExample": {
+                    "value": {
+                      "items": [
+                        {
+                          "id": "rec_001",
+                          "patientId": "pat_123",
+                          "recordDate": "2023-05-10T09:00:00Z",
+                          "type": "Consultation Note",
+                          "description": "Patient presented with flu-like symptoms. Prescribed antiviral medication.",
+                          "attachments": [
+                            {
+                              "fileName": "lab_results_20230509.pdf",
+                              "url": "https://storage.healthcareplus.com/records/rec_001/lab_results.pdf"
+                            }
+                          ],
+                          "tenantId": "tenant_A"
+                        }
+                      ],
+                      "total": 1,
+                      "limit": 10,
+                      "offset": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "record:read"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Medical Records"
+        ],
+        "summary": "Create a new medical record for a patient",
+        "description": "Adds a new medical record for a specified patient. Requires `record:write` scope.",
+        "operationId": "createMedicalRecord",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatientIdParam"
+          }
+        ],
+        "requestBody": {
+          "description": "Medical record object to be created",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MedicalRecordCreate"
+              },
+              "examples": {
+                "newMedicalRecord": {
+                  "value": {
+                    "recordDate": "2024-06-15T11:00:00Z",
+                    "type": "Prescription",
+                    "description": "Prescribed Amoxicillin 500mg, 3 times daily for 7 days.",
+                    "attachments": []
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Medical record created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicalRecord"
+                },
+                "examples": {
+                  "createdMedicalRecord": {
+                    "value": {
+                      "id": "rec_002",
+                      "patientId": "pat_123",
+                      "recordDate": "2024-06-15T11:00:00Z",
+                      "type": "Prescription",
+                      "description": "Prescribed Amoxicillin 500mg, 3 times daily for 7 days.",
+                      "attachments": [],
+                      "tenantId": "tenant_A"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "record:write"
+            ]
+          }
+        ]
+      }
+    },
+    "/patients/{patientId}/records/{recordId}": {
+      "get": {
+        "tags": [
+          "Medical Records"
+        ],
+        "summary": "Retrieve a specific medical record",
+        "description": "Returns details of a specific medical record for a given patient. Requires `record:read` scope.",
+        "operationId": "getMedicalRecordById",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatientIdParam"
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "description": "Unique identifier of the medical record",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^rec_[a-zA-Z0-9]{3,}$"
+            },
+            "example": "rec_001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medical record details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicalRecord"
+                },
+                "examples": {
+                  "medicalRecordDetails": {
+                    "value": {
+                      "id": "rec_00
