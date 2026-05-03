@@ -1,0 +1,40 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Banking & Finance API",
+    "version": "1.0.0",
+    "description": "A comprehensive API for banking management including accounts and transactions. This API adheres to PCI-DSS, PSD2/Open Banking, and KYC/AML compliance requirements. All monetary amounts are handled in minor units (e.g., cents) or with explicit currency codes."
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/api/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "https://sandbox.example.com/api/v1",
+      "description": "Sandbox server for testing"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "API health check operations"
+    },
+    {
+      "name": "Accounts",
+      "description": "Operations related to customer bank accounts"
+    },
+    {
+      "name": "Transactions",
+      "description": "Operations for managing financial transactions"
+    },
+    {
+      "name": "Payments",
+      "description": "Operations for initiating payments"
+    },
+    {
+      "name": "Cards",
+      "description": "Operations related to customer payment cards"
+    }
+  ],
+  "
