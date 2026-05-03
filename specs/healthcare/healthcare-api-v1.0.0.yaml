@@ -351,7 +351,7 @@ components:
           example: "123 Main St, Anytown, USA"
         phone:
           type: string
-          pattern: "^\+[1-9]\d{1,14}$" # E.164 format
+          pattern: "^\\+[1-9]\\d{1,14}$" # E.164 format
           description: Phone number of the patient, E.164 format.
           example: "+15551234567"
         email:
@@ -415,7 +415,7 @@ components:
           example: "789 Pine Ln, Smallville, USA"
         phone:
           type: string
-          pattern: "^\+[1-9]\d{1,14}$"
+          pattern: "^\\+[1-9]\\d{1,14}$"
           description: Phone number of the patient, E.164 format.
           example: "+15551112222"
         email:
@@ -457,7 +457,7 @@ components:
           example: "456 New St, Anytown, USA"
         phone:
           type: string
-          pattern: "^\+[1-9]\d{1,14}$"
+          pattern: "^\\+[1-9]\\d{1,14}$"
           description: Phone number of the patient, E.164 format.
           example: "+15551234567"
         email:
