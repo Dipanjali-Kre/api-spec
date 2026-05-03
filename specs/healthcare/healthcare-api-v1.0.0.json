@@ -23,4 +23,4 @@
     {
       "OAuth2": [
         "patient:read",
-        "patient:write",
+        "patient:write
