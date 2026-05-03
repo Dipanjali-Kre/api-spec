@@ -19,8 +19,7 @@
       "description": "Development server"
     }
   ],
-  "security": [
+  "tags": [
     {
-      "OAuth2": [
-        "patient:read",
-        "patient:write
+      "name": "Patients",
+      "description": "Operations related to patient management."
