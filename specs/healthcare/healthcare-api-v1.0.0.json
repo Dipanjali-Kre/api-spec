@@ -1,9 +1,13 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Healthcare Plus Platform API",
+    "title": "Healthcare Plus API",
     "version": "2.0.0",
-    "description": "A comprehensive RESTful API for managing patient records, appointments, medical records, and prescriptions within a multi-tenant hospital system. Designed with HIPAA compliance, HL7 FHIR compatibility, and robust access controls to ensure the security and privacy of Protected Health Information (PHI). All patient data access is subject to audit logging and requires explicit consent management. This API supports role-based access for admin, doctor, nurse, and receptionist roles."
+    "description": "A comprehensive RESTful API for managing patients, appointments, medical records, and prescriptions within a multi-tenant hospital management system. This API is designed with HIPAA compliance in mind, ensuring robust access controls, audit logging for all patient data access, and encryption at rest and in transit. It also aims for HL7 FHIR compatible resource naming where applicable. All PHI is protected and never exposed in URLs or query parameters. Features include patient consent tracking for data sharing, session timeouts after 15 minutes of inactivity, and two-factor authentication for provider access. The API enforces a rate limit of 100 requests per minute per API key.",
+    "contact": {
+      "name": "Engineering Team",
+      "email": "engineering@healthcareplus.com"
+    }
   },
   "servers": [
     {
@@ -11,7 +15,7 @@
       "description": "Production server"
     },
     {
-      "url": "https://dev.healthcareplus.com/api/v2",
+      "url": "https://dev.api.healthcareplus.com/api/v2",
       "description": "Development server"
     }
   ],
@@ -20,16 +24,3 @@
       "OAuth2": [
         "patient:read",
         "patient:write",
-        "appointment:read",
-        "appointment:write",
-        "record:read",
-        "record:write",
-        "prescription:read",
-        "prescription:write",
-        "provider:read",
-        "admin"
-      ]
-    },
-    {
-      "BearerAuth": []
-    }
