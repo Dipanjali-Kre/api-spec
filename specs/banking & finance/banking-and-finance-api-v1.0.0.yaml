@@ -1,0 +1,556 @@
+openapi: 3.0.3
+info:
+  title: Banking & Finance API
+  description: |
+    A comprehensive REST API for managing banking and financial operations, including accounts, transactions, payments, cards, customers, and consents.
+    This API adheres to strict compliance requirements such as PCI-DSS (masked card numbers), PSD2/Open Banking (consent management), and KYC/AML (customer onboarding).
+    All monetary amounts are handled in integer minor units (e.g., cents) or explicit decimal with ISO 4217 currency codes.
+  version: 1.0.0
+servers:
+  - url: https://api.banking.com/api/v1
+    description: Production server
+  - url: https://sandbox.banking.com/api/v1
+    description: Sandbox server for testing
+security:
+  - OAuth2:
+      - accounts:read
+      - accounts:write
+      - transactions:read
+      - transactions:write
+      - payments:write
+      - cards:read
+      - cards:manage
+      - customers:read
+      - customers:manage
+      - consents:manage
+  - BearerAuth: []
+tags:
+  - name: Health
+    description: API health and status checks.
+  - name: Customers
+    description: Operations related to customer management and KYC/AML.
+  - name: Accounts
+    description: Management of customer bank accounts.
+  - name: Transactions
+    description: Operations for viewing and initiating financial transactions.
+  - name: Payments
+    description: Operations for initiating and managing payments.
+  - name: Cards
+    description: Operations for managing customer cards.
+  - name: Consents
+    description: Operations for managing customer data sharing consents.
+paths:
+  /health:
+    get:
+      summary: Check API health status
+      description: Returns the current health status of the API and its dependencies.
+      operationId: getHealthStatus
+      tags:
+        - Health
+      responses:
+        '200':
+          description: API is healthy and operational.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /customers:
+    get:
+      summary: Retrieve a list of customers
+      description: Returns a paginated list of customer profiles.
+      operationId: listCustomers
+      tags:
+        - Customers
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: The maximum number of customers to return.
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+          description: The number of customers to skip before starting to collect the result set.
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: A cursor for pagination, used for fetching the next set of results.
+      responses:
+        '200':
+          description: A list of customer profiles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerList'
+        '400':
+          description: Invalid request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new customer
+      description: Creates a new customer profile with the provided details.
+      operationId: createCustomer
+      tags:
+        - Customers
+      requestBody:
+        description: Customer details for creation.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '201':
+          description: Customer created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: Invalid customer data provided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Customer with provided identifier already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /customers/{customerId}:
+    get:
+      summary: Retrieve a customer by ID
+      description: Returns a single customer profile by their unique identifier.
+      operationId: getCustomerById
+      tags:
+        - Customers
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: Unique identifier of the customer.
+      responses:
+        '200':
+          description: Customer profile found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Customer not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update an existing customer
+      description: Updates an existing customer profile identified by their unique ID.
+      operationId: updateCustomer
+      tags:
+        - Customers
+      parameters:
+        - in: path
+          name: customerId
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: Unique identifier of the customer to update.
+      requestBody:
+        description: Customer details for update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerUpdate'
+      responses:
+        '200':
+          description: Customer updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: Invalid customer data provided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Customer not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: A unique error code for programmatic handling.
+          example: "INVALID_INPUT"
+        message:
+          type: string
+          description: A human-readable explanation of the error.
+          example: "The provided customer ID is not a valid UUID format."
+        details:
+          type: array
+          description: Optional array of specific validation errors or additional details.
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: The field that caused the error.
+                example: "firstName"
+              issue:
+                type: string
+                description: The specific issue with the field.
+                example: "must not be empty"
+    HealthStatus:
+      type: object
+      description: Represents the health status of the API.
+      properties:
+        status:
+          type: string
+          description: Overall health status.
+          enum: [ "UP", "DOWN", "DEGRADED" ]
+          example: "UP"
+        eventTimestamp:  # mapped from timestamp
+          type: string
+          format: date-time
+          description: The time when the health check was performed.
+          example: "2023-10-27T10:00:00Z"
+        components:
+          type: object
+          description: Status of individual components or dependencies.
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [ "UP", "DOWN", "DEGRADED" ]
+                example: "UP"
+              message:
+                type: string
+                example: "Database connection successful."
+    Customer:
+      type: object
+      description: Represents a customer profile.
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the customer.
+          readOnly: true
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        firstName:
+          type: string
+          description: The customer's first name.
+          example: "John"
+        lastName:
+          type: string
+          description: The customer's last name.
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          description: The customer's email address. Must be unique.
+          example: "john.doe@example.com"
+        phone:
+          type: string
+          description: The customer's phone number.
+          pattern: '^\+\d{1,3}\d{9,15}$'
+          example: "+15551234567"
+        dateOfBirth:
+          type: string
+          format: date
+          description: The customer's date of birth (YYYY-MM-DD).
+          example: "1990-01-15"
+        address:
+          type: object
+          description: The customer's primary address.
+          properties:
+            street:
+              type: string
+              example: "123 Main St"
+            city:
+              type: string
+              example: "Anytown"
+            state:
+              type: string
+              example: "CA"
+            zipCode:
+              type: string
+              example: "90210"
+            country:
+              type: string
+              example: "USA"
+        status:
+          type: string
+          description: Current status of the customer (e.g., active, suspended, pending_kyc).
+          enum: [ "ACTIVE", "SUSPENDED", "PENDING_KYC", "CLOSED" ]
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the customer profile was created.
+          readOnly: true
+          example: "2023-10-27T09:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the customer profile was last updated.
+          readOnly: true
+          example: "2023-10-27T10:00:00Z"
+    CustomerCreate:
+      type: object
+      description: Data required to create a new customer.
+      required:
+        - firstName
+        - lastName
+        - email
+      properties:
+        firstName:
+          type: string
+          description: The customer's first name.
+          example: "Jane"
+        lastName:
+          type: string
+          description: The customer's last name.
+          example: "Smith"
+        email:
+          type: string
+          format: email
+          description: The customer's email address. Must be unique.
+          example: "jane.smith@example.com"
+        phone:
+          type: string
+          description: Optional phone number for the customer.
+          pattern: '^\+\d{1,3}\d{9,15}$'
+          example: "+442079460958"
+        dateOfBirth:
+          type: string
+          format: date
+          description: Optional date of birth (YYYY-MM-DD).
+          example: "1985-05-20"
+        address:
+          type: object
+          description: Optional primary address for the customer.
+          properties:
+            street:
+              type: string
+              example: "456 Oak Ave"
+            city:
+              type: string
+              example: "Springfield"
+            state:
+              type: string
+              example: "IL"
+            zipCode:
+              type: string
+              example: "62704"
+            country:
+              type: string
+              example: "USA"
+    CustomerUpdate:
+      type: object
+      description: Data for updating an existing customer. All fields are optional.
+      properties:
+        firstName:
+          type: string
+          description: The customer's updated first name.
+          example: "Jonathan"
+        lastName:
+          type: string
+          description: The customer's updated last name.
+          example: "Doe"
+        phone:
+          type: string
+          description: The customer's updated phone number.
+          pattern: '^\+\d{1,3}\d{9,15}$'
+          example: "+15559876543"
+        address:
+          type: object
+          description: The customer's updated primary address.
+          properties:
+            street:
+              type: string
+              example: "789 Pine Ln"
+            city:
+              type: string
+              example: "Rivertown"
+            state:
+              type: string
+              example: "NY"
+            zipCode:
+              type: string
+              example: "10001"
+            country:
+              type: string
+              example: "USA"
+        status:
+          type: string
+          description: The customer's updated status.
+          enum: [ "ACTIVE", "SUSPENDED", "CLOSED" ]
+          example: "SUSPENDED"
+    CustomerList:
+      type: object
+      description: A paginated list of customer profiles.
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          description: Array of customer profiles.
+          items:
+            $ref: '#/components/schemas/Customer'
+        total:
+          type: integer
+          description: Total number of customers available.
+          example: 150
+        limit:
+          type: integer
+          description: The maximum number of customers returned in this response.
+          example: 20
+        offset:
+          type: integer
+          description: The number of customers skipped.
+          example: 0
+        nextCursor:
+          type: string
+          description: A cursor to retrieve the next page of results, if available.
+          nullable: true
+          example: "eyJpZCI6IjEyMyIsImNyZWF0ZWRBdCI6IjIwMjMtMTAtMjcgMTI6MDA6MDAifQ=="
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      description: OAuth 2.0 Authorization Code Flow for user authentication and authorization.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.banking.com/oauth2/authorize
+          tokenUrl: https://auth.banking.com/oauth2/token
+          scopes:
+            accounts:read: Read customer account information
+            accounts:write: Write/modify customer account information
+            transactions:read: Read customer transaction history
+            transactions:write: Initiate customer transactions
+            payments:write: Initiate customer payments
+            cards:read: Read customer card details
+            cards:manage: Manage customer cards (e.g., block, unblock)
+            customers:read: Read customer profile information
+            customers:manage: Manage customer profile information
+            consents:manage: Manage customer consents for data sharing
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token authentication using a JSON Web Token (JWT).
