@@ -1,28 +1,28 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.0.0",
   "info": {
-    "title": "Banking API",
-    "description": "A comprehensive API for managing banking operations, including accounts, transactions, and user profiles.",
-    "version": "1.0.1"
+    "title": "banking",
+    "description": "API specification for the banking service, providing endpoints for managing accounts, transactions, and user data.",
+    "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "https://api.banking.example.com/v1",
-      "description": "Production server"
+      "url": "https://api.example.com/v1",
+      "description": "Production server for the banking API."
     },
     {
-      "url": "https://dev.banking.example.com/v1",
-      "description": "Development server"
+      "url": "https://dev.example.com/v1",
+      "description": "Development server for testing and integration."
     }
   ],
   "paths": {
     "/health": {
       "get": {
         "tags": [
-          "Health"
+          "Monitoring"
         ],
         "summary": "Check API health status",
-        "description": "Returns the current health status of the API and its dependencies.",
+        "description": "Provides a simple health check endpoint to determine if the API is operational and responsive. This endpoint does not require authentication.",
         "operationId": "getHealthStatus",
         "responses": {
           "200": {
@@ -36,11 +36,7 @@
                   "healthy": {
                     "value": {
                       "status": "UP",
-                      "timestamp": "2023-10-27T10:30:00Z",
-                      "details": {
-                        "database": "UP",
-                        "cache": "UP"
-                      }
+                      "timestamp": "2023-10-27T10:00:00Z"
                     }
                   }
                 }
@@ -48,18 +44,17 @@
             }
           },
           "500": {
-            "description": "Internal server error",
+            "description": "Internal server error indicating the API is unhealthy or experiencing issues.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 },
                 "examples": {
-                  "internalError": {
+                  "unhealthy": {
                     "value": {
-                      "code": "SERVER_ERROR",
-                      "message": "An unexpected error occurred on the server.",
-                      "details": "Please try again later or contact support."
+                      "code": "SERVICE_UNAVAILABLE",
+                      "message": "The banking service is currently experiencing internal issues and cannot process requests."
                     }
                   }
                 }
@@ -72,42 +67,13 @@
   },
   "components": {
     "schemas": {
-      "Error": {
-        "type": "object",
-        "description": "Standard error response format.",
-        "required": [
-          "code",
-          "message"
-        ],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "A unique error code for programmatic handling.",
-            "example": "INVALID_INPUT"
-          },
-          "message": {
-            "type": "string",
-            "description": "A human-readable message describing the error.",
-            "example": "The provided input is invalid."
-          },
-          "details": {
-            "type": "string",
-            "description": "Additional details about the error, if available.",
-            "example": "Field 'amount' must be a positive number."
-          }
-        }
-      },
       "HealthStatus": {
         "type": "object",
         "description": "Represents the health status of the API.",
-        "required": [
-          "status",
-          "timestamp"
-        ],
         "properties": {
           "status": {
             "type": "string",
-            "description": "Overall health status of the API.",
+            "description": "The overall health status of the API.",
             "enum": [
               "UP",
               "DOWN",
@@ -118,22 +84,53 @@
           "timestamp": {
             "type": "string",
             "format": "date-time",
-            "description": "Timestamp when the health check was performed.",
-            "example": "2023-10-27T10:30:00Z"
+            "description": "The timestamp when the health check was performed.",
+            "example": "2023-10-27T10:00:00Z"
+          }
+        },
+        "required": [
+          "status",
+          "timestamp"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Standard error response format for API errors.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "A unique, programmatic error code.",
+            "example": "INVALID_INPUT"
+          },
+          "message": {
+            "type": "string",
+            "description": "A human-readable message describing the error.",
+            "example": "The provided input is invalid. Please check your request."
           },
           "details": {
-            "type": "object",
-            "description": "Detailed status of individual components.",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "example": {
-              "database": "UP",
-              "cache": "UP",
-              "messageQueue": "DOWN"
+            "type": "array",
+            "description": "Optional array of detailed error messages or validation issues.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "The field that caused the error (if applicable).",
+                  "example": "amount"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "Specific issue with the field.",
+                  "example": "must be a positive number"
+                }
+              }
             }
           }
-        }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
       }
     },
     "securitySchemes": {
@@ -141,107 +138,23 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "Bearer token authentication using a JWT."
+        "description": "Bearer token authentication using a JSON Web Token (JWT)."
       },
       "ApiKeyAuth": {
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "API Key authentication for client identification."
-      }
-    },
-    "responses": {
-      "BadRequest": {
-        "description": "Bad Request - The request was malformed or invalid.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "examples": {
-              "invalidInput": {
-                "value": {
-                  "code": "INVALID_INPUT",
-                  "message": "One or more request parameters are invalid.",
-                  "details": "The 'amount' field must be a positive number."
-                }
-              }
-            }
-          }
-        }
+        "description": "API Key authentication, passed in the 'X-API-Key' request header."
       },
-      "Unauthorized": {
-        "description": "Unauthorized - Authentication credentials were missing or invalid.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "examples": {
-              "missingToken": {
-                "value": {
-                  "code": "UNAUTHORIZED",
-                  "message": "Authentication token is missing or invalid.",
-                  "details": "Please provide a valid Bearer token."
-                }
-              }
-            }
-          }
-        }
-      },
-      "Forbidden": {
-        "description": "Forbidden - The authenticated user does not have the necessary permissions.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "examples": {
-              "insufficientPermissions": {
-                "value": {
-                  "code": "FORBIDDEN",
-                  "message": "You do not have permission to perform this action.",
-                  "details": "Required role: 'admin'."
-                }
-              }
-            }
-          }
-        }
-      },
-      "NotFound": {
-        "description": "Not Found - The requested resource could not be found.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "examples": {
-              "resourceNotFound": {
-                "value": {
-                  "code": "NOT_FOUND",
-                  "message": "The specified resource was not found.",
-                  "details": "Resource with ID '123' does not exist."
-                }
-              }
-            }
-          }
-        }
-      },
-      "InternalServerError": {
-        "description": "Internal Server Error - An unexpected error occurred on the server.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "examples": {
-              "serverError": {
-                "value": {
-                  "code": "SERVER_ERROR",
-                  "message": "An unexpected error occurred on the server.",
-                  "details": "Please try again later or contact support."
-                }
-              }
+      "OAuth2ClientCredentials": {
+        "type": "oauth2",
+        "description": "OAuth 2.0 Client Credentials flow for machine-to-machine authentication.",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://auth.example.com/oauth/token",
+            "scopes": {
+              "accounts:read": "Read access to user accounts",
+              "transactions:write": "Write access to user transactions"
             }
           }
         }
