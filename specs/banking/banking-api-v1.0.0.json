@@ -1,65 +1,59 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "banking",
-    "description": "API specification for the banking service, providing endpoints for managing accounts, transactions, and user data.",
+    "title": "Banking API",
+    "description": "API for managing banking operations, including accounts, transactions, and user profiles.",
     "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "https://api.example.com/v1",
-      "description": "Production server for the banking API."
+      "url": "https://api.banking.example.com/v1",
+      "description": "Production server"
     },
     {
-      "url": "https://dev.example.com/v1",
-      "description": "Development server for testing and integration."
+      "url": "https://dev.banking.example.com/v1",
+      "description": "Development server"
     }
   ],
   "paths": {
     "/health": {
       "get": {
-        "tags": [
-          "Monitoring"
-        ],
-        "summary": "Check API health status",
-        "description": "Provides a simple health check endpoint to determine if the API is operational and responsive. This endpoint does not require authentication.",
         "operationId": "getHealthStatus",
+        "summary": "Get API health status",
+        "description": "Checks the health and availability of the API services.",
+        "tags": [
+          "Health"
+        ],
         "responses": {
           "200": {
             "description": "API is healthy and operational.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthStatus"
-                },
-                "examples": {
-                  "healthy": {
-                    "value": {
-                      "status": "UP",
-                      "timestamp": "2023-10-27T10:00:00Z"
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "Current health status of the API.",
+                      "example": "healthy"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when the health check was performed.",
+                      "example": "2023-10-27T10:00:00Z"
                     }
-                  }
+                  },
+                  "required": [
+                    "status",
+                    "timestamp"
+                  ]
                 }
               }
             }
           },
           "500": {
-            "description": "Internal server error indicating the API is unhealthy or experiencing issues.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "unhealthy": {
-                    "value": {
-                      "code": "SERVICE_UNAVAILABLE",
-                      "message": "The banking service is currently experiencing internal issues and cannot process requests."
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -67,49 +61,23 @@
   },
   "components": {
     "schemas": {
-      "HealthStatus": {
+      "Error": {
         "type": "object",
-        "description": "Represents the health status of the API.",
-        "properties": {
-          "status": {
-            "type": "string",
-            "description": "The overall health status of the API.",
-            "enum": [
-              "UP",
-              "DOWN",
-              "DEGRADED"
-            ],
-            "example": "UP"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The timestamp when the health check was performed.",
-            "example": "2023-10-27T10:00:00Z"
-          }
-        },
-        "required": [
-          "status",
-          "timestamp"
-        ]
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "description": "Standard error response format for API errors.",
+        "description": "Standard error response format.",
         "properties": {
           "code": {
             "type": "string",
-            "description": "A unique, programmatic error code.",
+            "description": "A unique error code for programmatic handling.",
             "example": "INVALID_INPUT"
           },
           "message": {
             "type": "string",
-            "description": "A human-readable message describing the error.",
-            "example": "The provided input is invalid. Please check your request."
+            "description": "A human-readable explanation of the error.",
+            "example": "The provided input is invalid."
           },
           "details": {
             "type": "array",
-            "description": "Optional array of detailed error messages or validation issues.",
+            "description": "Optional array of specific validation errors or additional details.",
             "items": {
               "type": "object",
               "properties": {
@@ -133,31 +101,116 @@
         ]
       }
     },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request - The request was malformed or invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "invalidInput": {
+                "value": {
+                  "code": "INVALID_INPUT",
+                  "message": "One or more request parameters are invalid.",
+                  "details": [
+                    {
+                      "field": "amount",
+                      "issue": "must be greater than 0"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - Authentication credentials were missing or invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "missingToken": {
+                "value": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Authentication token is missing or invalid."
+                }
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden - The authenticated user does not have the necessary permissions.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "noPermission": {
+                "value": {
+                  "code": "FORBIDDEN",
+                  "message": "You do not have permission to perform this action."
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Not Found - The requested resource could not be found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "resourceNotFound": {
+                "value": {
+                  "code": "NOT_FOUND",
+                  "message": "The requested account was not found."
+                }
+              }
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal Server Error - An unexpected error occurred on the server.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "genericError": {
+                "value": {
+                  "code": "INTERNAL_SERVER_ERROR",
+                  "message": "An unexpected error occurred. Please try again later."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "securitySchemes": {
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "Bearer token authentication using a JSON Web Token (JWT)."
+        "description": "Bearer token authentication using a JWT."
       },
       "ApiKeyAuth": {
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "API Key authentication, passed in the 'X-API-Key' request header."
-      },
-      "OAuth2ClientCredentials": {
-        "type": "oauth2",
-        "description": "OAuth 2.0 Client Credentials flow for machine-to-machine authentication.",
-        "flows": {
-          "clientCredentials": {
-            "tokenUrl": "https://auth.example.com/oauth/token",
-            "scopes": {
-              "accounts:read": "Read access to user accounts",
-              "transactions:write": "Write access to user transactions"
-            }
-          }
-        }
+        "description": "API Key authentication for service-to-service communication."
       }
     }
   }
