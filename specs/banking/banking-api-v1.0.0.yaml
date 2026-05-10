@@ -5,20 +5,604 @@ info:
   description: |
     This API provides a comprehensive set of services for managing banking operations,
     including accounts, transactions, payments, cards, and customer information.
-    It adheres to strict security and compliance standards such as PCI-DSS, PSD2/Open Banking, and KYC/AML.
+    It adheres to strict security and compliance standards such as PCI-DSS, PSD2, and KYC/AML.
 
-    **Key Features:**
-    *   **Account Management:** View and manage customer bank accounts.
-    *   **Transaction Processing:** Initiate and track financial transactions.
-    *   **Payment Services:** Facilitate secure payment initiations.
-    *   **Card Management:** Manage customer debit/credit cards, including blocking.
-    *   **Customer Onboarding:** Support for KYC/AML verification processes.
-    *   **Consent Management:** PSD2/Open Banking compliant consent handling.
-
-    **Compliance & Security:**
+    **Compliance Requirements:**
     *   **PCI-DSS:** Full card numbers (PAN) are never exposed. Masked card numbers are used in responses.
-    *   **PSD2/Open Banking:** Includes consent management endpoints.
+    *   **PSD2/Open Banking:** Consent management endpoints are provided for data sharing.
     *   **KYC/AML:** Customer onboarding includes identity verification steps.
-    *   **Monetary Amounts:** All monetary amounts are represented in integer minor units (e.g., cents) or explicit decimal with ISO 4217 `currencyCode`.
-    *   **OAuth 2.0:** Scope-based access control for secure operations.
-    *   **Strong Customer Authentication (S
+    *   **Monetary Amounts:** All monetary amounts are represented as integer minor units (e.g., cents)
+        and explicitly linked with an ISO 4217 `currencyCode`.
+
+    **Security:**
+    *   OAuth 2.0 with scope-based access control.
+    *   Strong Customer Authentication (SCA) for payment initiation.
+    *   Rate limiting on sensitive endpoints.
+    *   Idempotency keys for POST operations.
+servers:
+  - url: https://api.banking.com/api/v1
+    description: Production server
+  - url: https://sandbox.banking.com/api/v1
+    description: Sandbox server
+security:
+  - BearerAuth: []
+tags:
+  - name: Health
+    description: API health check operations
+  - name: Accounts
+    description: Operations related to customer bank accounts
+  - name: Transactions
+    description: Operations for managing financial transactions
+  - name: Payments
+    description: Operations for initiating and managing payments
+  - name: Cards
+    description: Operations for managing customer cards
+  - name: Customers
+    description: Operations for managing customer profiles and KYC
+  - name: Consents
+    description: Operations for managing customer data sharing consents
+paths:
+  /health:
+    get:
+      summary: Check API Health
+      operationId: getHealthStatus
+      tags:
+        - Health
+      description: Checks the health and availability of the API.
+      responses:
+        '200':
+          description: API is healthy and operational.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: API is healthy
+                    data:
+                      serviceStatus: UP
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internalError:
+                  value:
+                    error:
+                      code: INTERNAL_ERROR
+                      message: An unexpected error occurred.
+                      details: []
+                      traceId: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
+
+  /accounts:
+    get:
+      summary: List Customer Accounts
+      operationId: listCustomerAccounts
+      tags:
+        - Accounts
+      description: Retrieves a paginated list of all bank accounts for the authenticated customer.
+      security:
+        - BearerAuth:
+            - accounts:read
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: A paginated list of customer accounts.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: Accounts retrieved successfully.
+                    data:
+                      accounts:
+                        - accountRef: 'acc_12345'
+                          accountNumber: '1234567890'
+                          accountType: 'SAVINGS'
+                          balanceAmount: 150000
+                          currencyCode: 'USD'
+                          statusCode: 'ACTIVE'
+                          createdAt: '2022-01-01T10:00:00Z'
+                          updatedAt: '2023-09-15T14:30:00Z'
+                        - accountRef: 'acc_67890'
+                          accountNumber: '0987654321'
+                          accountType: 'CHECKING'
+                          balanceAmount: 50000
+                          currencyCode: 'USD'
+                          statusCode: 'ACTIVE'
+                          createdAt: '2022-03-01T11:00:00Z'
+                          updatedAt: '2023-10-20T09:00:00Z'
+                      pagination:
+                        totalCount: 2
+                        pageSize: 10
+                        page: 1
+                        totalPages: 1
+                        hasNextPage: false
+                        hasPreviousPage: false
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /accounts/{accountRef}:
+    get:
+      summary: Get Account Details
+      operationId: getAccountDetails
+      tags:
+        - Accounts
+      description: Retrieves detailed information for a specific bank account.
+      security:
+        - BearerAuth:
+            - accounts:read
+      parameters:
+        - $ref: '#/components/parameters/AccountRefParam'
+      responses:
+        '200':
+          description: Account details retrieved successfully.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: Account details retrieved successfully.
+                    data:
+                      account:
+                        accountRef: 'acc_12345'
+                        accountNumber: '1234567890'
+                        accountType: 'SAVINGS'
+                        balanceAmount: 150000
+                        currencyCode: 'USD'
+                        statusCode: 'ACTIVE'
+                        createdAt: '2022-01-01T10:00:00Z'
+                        updatedAt: '2023-09-15T14:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /accounts/{accountRef}/transactions:
+    get:
+      summary: List Account Transactions
+      operationId: listAccountTransactions
+      tags:
+        - Accounts
+        - Transactions
+      description: Retrieves a paginated list of transactions for a specific bank account.
+      security:
+        - BearerAuth:
+            - accounts:read
+            - transactions:read
+      parameters:
+        - $ref: '#/components/parameters/AccountRefParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - $ref: '#/components/parameters/CursorParam'
+        - name: transactionType
+          in: query
+          description: Filter transactions by type (e.g., DEBIT, CREDIT).
+          required: false
+          schema:
+            type: string
+            enum: [DEBIT, CREDIT, TRANSFER, PAYMENT]
+          example: DEBIT
+        - name: startDate
+          in: query
+          description: Filter transactions from this date (ISO 8601 format).
+          required: false
+          schema:
+            type: string
+            format: date
+            example: '2023-01-01'
+        - name: endDate
+          in: query
+          description: Filter transactions up to this date (ISO 8601 format).
+          required: false
+          schema:
+            type: string
+            format: date
+            example: '2023-12-31'
+      responses:
+        '200':
+          description: A paginated list of transactions for the specified account.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: Transactions retrieved successfully.
+                    data:
+                      transactions:
+                        - transactionId: 'txn_abc123'
+                          customerRef: 'cust_001'
+                          sourceAccountRef: 'acc_12345'
+                          destinationAccountRef: 'acc_67890'
+                          totalAmount: 5000
+                          currencyCode: 'USD'
+                          transactionType: 'TRANSFER'
+                          eventTimestamp: '2023-10-26T15:30:00Z'
+                          description: 'Online transfer to checking'
+                          statusCode: 'COMPLETED'
+                        - transactionId: 'txn_def456'
+                          customerRef: 'cust_001'
+                          sourceAccountRef: 'acc_12345'
+                          totalAmount: 2500
+                          currencyCode: 'USD'
+                          transactionType: 'DEBIT'
+                          eventTimestamp: '2023-10-25T10:00:00Z'
+                          description: 'Coffee shop purchase'
+                          statusCode: 'COMPLETED'
+                      pagination:
+                        totalCount: 2
+                        pageSize: 10
+                        page: 1
+                        totalPages: 1
+                        hasNextPage: false
+                        hasPreviousPage: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /transactions:
+    post:
+      summary: Initiate a Transaction
+      operationId: initiateTransaction
+      tags:
+        - Transactions
+      description: Initiates a new financial transaction between accounts.
+      security:
+        - BearerAuth:
+            - transactions:write
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        description: Transaction details for initiation.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionInitiationRequest'
+            examples:
+              transfer:
+                value:
+                  sourceAccountRef: 'acc_12345'
+                  destinationAccountRef: 'acc_67890'
+                  totalAmount: 10000
+                  currencyCode: 'USD'
+                  transactionType: 'TRANSFER'
+                  description: 'Monthly rent payment'
+              debit:
+                value:
+                  sourceAccountRef: 'acc_12345'
+                  totalAmount: 2500
+                  currencyCode: 'USD'
+                  transactionType: 'DEBIT'
+                  description: 'Online subscription'
+      responses:
+        '201':
+          description: Transaction initiated successfully.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: Transaction initiated successfully.
+                    data:
+                      transactionId: 'txn_xyz789'
+                      statusCode: 'PENDING'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /transactions/{transactionId}:
+    get:
+      summary: Get Transaction Status
+      operationId: getTransactionStatus
+      tags:
+        - Transactions
+      description: Retrieves the current status and details of a specific transaction.
+      security:
+        - BearerAuth:
+            - transactions:read
+      parameters:
+        - $ref: '#/components/parameters/TransactionIdParam'
+      responses:
+        '200':
+          description: Transaction details retrieved successfully.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: Transaction details retrieved successfully.
+                    data:
+                      transaction:
+                        transactionId: 'txn_xyz789'
+                        customerRef: 'cust_001'
+                        sourceAccountRef: 'acc_12345'
+                        destinationAccountRef: 'acc_67890'
+                        totalAmount: 10000
+                        currencyCode: 'USD'
+                        transactionType: 'TRANSFER'
+                        eventTimestamp: '2023-10-27T09:55:00Z'
+                        description: 'Monthly rent payment'
+                        statusCode: 'COMPLETED'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /payments:
+    post:
+      summary: Initiate a Payment
+      operationId: initiatePayment
+      tags:
+        - Payments
+      description: Initiates a new payment from a customer's account. This endpoint may require Strong Customer Authentication (SCA).
+      security:
+        - BearerAuth:
+            - payments:write
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        description: Payment details for initiation.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+            examples:
+              payment:
+                value:
+                  sourceAccountRef: 'acc_12345'
+                  destinationAccountRef: 'ext_bank_001'
+                  totalAmount: 50000
+                  currencyCode: 'USD'
+                  description: 'Utility bill payment'
+                  scaRequired: true
+      responses:
+        '201':
+          description: Payment initiated successfully. May require further SCA.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: Payment initiated. Awaiting SCA confirmation.
+                    data:
+                      transactionId: 'pay_abc123'
+                      statusCode: 'PENDING_SCA'
+                      scaUrl: 'https://sca.banking.com/confirm/pay_abc123'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /cards:
+    get:
+      summary: List Customer Cards
+      operationId: listCustomerCards
+      tags:
+        - Cards
+      description: Retrieves a list of all cards associated with the authenticated customer.
+      security:
+        - BearerAuth:
+            - cards:read
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: A paginated list of customer cards.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: Cards retrieved successfully.
+                    data:
+                      cards:
+                        - cardId: 'card_111'
+                          customerRef: 'cust_001'
+                          maskedCardNumber: 'XXXX-XXXX-XXXX-1234'
+                          cardType: 'DEBIT'
+                          expiryDate: '2025-12-31'
+                          cardholderName: 'John Doe'
+                          statusCode: 'ACTIVE'
+                          createdAt: '2021-05-01T10:00:00Z'
+                          updatedAt: '2023-01-15T11:00:00Z'
+                        - cardId: 'card_222'
+                          customerRef: 'cust_001'
+                          maskedCardNumber: 'XXXX-XXXX-XXXX-5678'
+                          cardType: 'CREDIT'
+                          expiryDate: '2026-06-30'
+                          cardholderName: 'John Doe'
+                          statusCode: 'ACTIVE'
+                          createdAt: '2022-02-01T12:00:00Z'
+                          updatedAt: '2023-03-20T13:00:00Z'
+                      pagination:
+                        totalCount: 2
+                        pageSize: 10
+                        page: 1
+                        totalPages: 1
+                        hasNextPage: false
+                        hasPreviousPage: false
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /cards/{cardId}/block:
+    post:
+      summary: Block a Card
+      operationId: blockCard
+      tags:
+        - Cards
+      description: Blocks a specific card due to loss, theft, or other reasons. This action is irreversible.
+      security:
+        - BearerAuth:
+            - cards:write
+      parameters:
+        - $ref: '#/components/parameters/CardIdParam'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        description: Reason for blocking the card.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardBlockRequest'
+            examples:
+              lostCard:
+                value:
+                  reason: 'LOST'
+      responses:
+        '200':
+          description: Card blocked successfully.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+              examples:
+                success:
+                  value:
+                    timestamp: '2023-10-27T10:00:00Z'
+                    status: SUCCESS
+                    message: Card 'card_111' has been successfully blocked.
+                    data:
+                      cardId: 'card_111'
+                      statusCode: 'BLOCKED'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/
