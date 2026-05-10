@@ -5,19 +5,20 @@ info:
   description: |
     This API provides a comprehensive set of services for managing banking operations,
     including accounts, transactions, payments, cards, and customer information.
-    It adheres to strict security and compliance standards such as PCI-DSS, PSD2, and KYC/AML.
+    It adheres to strict security and compliance standards such as PCI-DSS, PSD2/Open Banking, and KYC/AML.
 
-    **Compliance Notes:**
-    *   **PCI-DSS**: Full card numbers (PAN) are never exposed. Masked card numbers are used in responses.
-    *   **PSD2/Open Banking**: Consent management endpoints are provided for third-party access.
-    *   **KYC/AML**: Customer onboarding includes identity verification (`kycStatus`).
-    *   **Monetary Amounts**: All monetary amounts are represented as integer minor units (e.g., cents for USD) or explicit decimal with `currencyCode` (ISO 4217).
+    **Key Features:**
+    *   **Account Management:** View and manage customer bank accounts.
+    *   **Transaction Processing:** Initiate and track financial transactions.
+    *   **Payment Services:** Facilitate secure payment initiations.
+    *   **Card Management:** Manage customer debit/credit cards, including blocking.
+    *   **Customer Onboarding:** Support for KYC/AML verification processes.
+    *   **Consent Management:** PSD2/Open Banking compliant consent handling.
 
-    **Security Notes:**
-    *   **OAuth 2.0**: Access is controlled via OAuth 2.0 with scope-based authorization.
-    *   **SCA**: Strong Customer Authentication is required for payment initiation.
-    *   **Rate Limiting**: Sensitive endpoints are subject to rate limiting.
-    *   **Idempotency**: `Idempotency-Key` header is required for all `POST` operations to ensure transaction safety.
-servers:
-  - url: https://api.banking.example.com/api/v1
-    description:
+    **Compliance & Security:**
+    *   **PCI-DSS:** Full card numbers (PAN) are never exposed. Masked card numbers are used in responses.
+    *   **PSD2/Open Banking:** Includes consent management endpoints.
+    *   **KYC/AML:** Customer onboarding includes identity verification steps.
+    *   **Monetary Amounts:** All monetary amounts are represented in integer minor units (e.g., cents) or explicit decimal with ISO 4217 `currencyCode`.
+    *   **OAuth 2.0:** Scope-based access control for secure operations.
+    *   **Strong Customer Authentication (S
