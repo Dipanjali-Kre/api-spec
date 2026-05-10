@@ -1,0 +1,43 @@
+openapi: 3.0.3
+info:
+  title: General API
+  version: 1.0.0
+  description: A general-purpose API for managing various resources, designed to be a proxy target.
+servers:
+  - url: https://api.general.com/api/v1
+    description: Production server
+  - url: https://dev.api.general.com/api/v1
+    description: Development server
+security:
+  - BearerAuth: []
+tags:
+  - name: Health
+    description: API health check operations
+  - name: Users
+    description: Operations related to user management
+  - name: Products
+    description: Operations related to product catalog
+  - name: Reviews
+    description: Operations related to product reviews
+  - name: Orders
+    description: Operations related to customer orders
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Check API health status
+      operationId: getHealthStatus
+      description: Returns the current health status of the API.
+      security: [] # Public endpoint, no authentication required
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  value:
+                    timestamp: '2023-10-27T10:00:
