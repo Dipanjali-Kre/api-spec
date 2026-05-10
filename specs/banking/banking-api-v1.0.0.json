@@ -1,9 +1,9 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.0.3",
   "info": {
     "title": "Banking API",
-    "description": "API for managing banking operations, including accounts, transactions, and user profiles.",
-    "version": "1.0.0"
+    "description": "A comprehensive API for managing banking operations, including accounts, transactions, and user profiles.",
+    "version": "1.0.1"
   },
   "servers": [
     {
@@ -18,42 +18,53 @@
   "paths": {
     "/health": {
       "get": {
-        "operationId": "getHealthStatus",
-        "summary": "Get API health status",
-        "description": "Checks the health and availability of the API services.",
         "tags": [
           "Health"
         ],
+        "summary": "Check API health status",
+        "description": "Returns the current health status of the API and its dependencies.",
+        "operationId": "getHealthStatus",
         "responses": {
           "200": {
             "description": "API is healthy and operational.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "description": "Current health status of the API.",
-                      "example": "healthy"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when the health check was performed.",
-                      "example": "2023-10-27T10:00:00Z"
+                  "$ref": "#/components/schemas/HealthStatus"
+                },
+                "examples": {
+                  "healthy": {
+                    "value": {
+                      "status": "UP",
+                      "timestamp": "2023-10-27T10:30:00Z",
+                      "details": {
+                        "database": "UP",
+                        "cache": "UP"
+                      }
                     }
-                  },
-                  "required": [
-                    "status",
-                    "timestamp"
-                  ]
+                  }
                 }
               }
             }
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerError"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "internalError": {
+                    "value": {
+                      "code": "SERVER_ERROR",
+                      "message": "An unexpected error occurred on the server.",
+                      "details": "Please try again later or contact support."
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -64,6 +75,10 @@
       "Error": {
         "type": "object",
         "description": "Standard error response format.",
+        "required": [
+          "code",
+          "message"
+        ],
         "properties": {
           "code": {
             "type": "string",
@@ -72,33 +87,67 @@
           },
           "message": {
             "type": "string",
-            "description": "A human-readable explanation of the error.",
+            "description": "A human-readable message describing the error.",
             "example": "The provided input is invalid."
           },
           "details": {
-            "type": "array",
-            "description": "Optional array of specific validation errors or additional details.",
-            "items": {
-              "type": "object",
-              "properties": {
-                "field": {
-                  "type": "string",
-                  "description": "The field that caused the error (if applicable).",
-                  "example": "amount"
-                },
-                "issue": {
-                  "type": "string",
-                  "description": "Specific issue with the field.",
-                  "example": "must be a positive number"
-                }
-              }
+            "type": "string",
+            "description": "Additional details about the error, if available.",
+            "example": "Field 'amount' must be a positive number."
+          }
+        }
+      },
+      "HealthStatus": {
+        "type": "object",
+        "description": "Represents the health status of the API.",
+        "required": [
+          "status",
+          "timestamp"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Overall health status of the API.",
+            "enum": [
+              "UP",
+              "DOWN",
+              "DEGRADED"
+            ],
+            "example": "UP"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the health check was performed.",
+            "example": "2023-10-27T10:30:00Z"
+          },
+          "details": {
+            "type": "object",
+            "description": "Detailed status of individual components.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "database": "UP",
+              "cache": "UP",
+              "messageQueue": "DOWN"
             }
           }
-        },
-        "required": [
-          "code",
-          "message"
-        ]
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Bearer token authentication using a JWT."
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API Key authentication for client identification."
       }
     },
     "responses": {
@@ -114,12 +163,7 @@
                 "value": {
                   "code": "INVALID_INPUT",
                   "message": "One or more request parameters are invalid.",
-                  "details": [
-                    {
-                      "field": "amount",
-                      "issue": "must be greater than 0"
-                    }
-                  ]
+                  "details": "The 'amount' field must be a positive number."
                 }
               }
             }
@@ -137,7 +181,8 @@
               "missingToken": {
                 "value": {
                   "code": "UNAUTHORIZED",
-                  "message": "Authentication token is missing or invalid."
+                  "message": "Authentication token is missing or invalid.",
+                  "details": "Please provide a valid Bearer token."
                 }
               }
             }
@@ -152,10 +197,11 @@
               "$ref": "#/components/schemas/Error"
             },
             "examples": {
-              "noPermission": {
+              "insufficientPermissions": {
                 "value": {
                   "code": "FORBIDDEN",
-                  "message": "You do not have permission to perform this action."
+                  "message": "You do not have permission to perform this action.",
+                  "details": "Required role: 'admin'."
                 }
               }
             }
@@ -173,7 +219,8 @@
               "resourceNotFound": {
                 "value": {
                   "code": "NOT_FOUND",
-                  "message": "The requested account was not found."
+                  "message": "The specified resource was not found.",
+                  "details": "Resource with ID '123' does not exist."
                 }
               }
             }
@@ -188,29 +235,16 @@
               "$ref": "#/components/schemas/Error"
             },
             "examples": {
-              "genericError": {
+              "serverError": {
                 "value": {
-                  "code": "INTERNAL_SERVER_ERROR",
-                  "message": "An unexpected error occurred. Please try again later."
+                  "code": "SERVER_ERROR",
+                  "message": "An unexpected error occurred on the server.",
+                  "details": "Please try again later or contact support."
                 }
               }
             }
           }
         }
-      }
-    },
-    "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Bearer token authentication using a JWT."
-      },
-      "ApiKeyAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-API-Key",
-        "description": "API Key authentication for service-to-service communication."
       }
     }
   }
